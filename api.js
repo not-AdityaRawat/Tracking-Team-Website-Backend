@@ -166,7 +166,7 @@ app.patch("/company/:id/coordinator", async (req, res) => {
     }
 });
 
-// Create a new company
+// Create a new company (POST endpoint)
 app.post("/company", async (req, res) => {
     try {
         const { Name, CGPA, Title, Stipend, Location, Type } = req.body;
