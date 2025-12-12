@@ -1,4 +1,4 @@
-# NSUT Placements Tracker
+# T&P Tracker
 
 ## Setup Instructions
 

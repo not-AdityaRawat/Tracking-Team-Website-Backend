@@ -49,8 +49,14 @@ app.get("/placement", async (req, res) => {
 
 // Get paginated companies
 app.get("/companies", async (req, res) => {
-    const { page = 1, limit = 20, sortBy, sortOrder = 'asc' } = req.query;
+    const { page = 1, limit = 20, sortBy, sortOrder = 'asc', search } = req.query;
     try {
+        // Build search filter
+        let filter = {};
+        if (search) {
+            filter.Name = { $regex: search, $options: 'i' }; // Case-insensitive search
+        }
+        
         let sortOptions = { id: 1 }; // Default sort by id
         
         if (sortBy) {
@@ -91,13 +97,13 @@ app.get("/companies", async (req, res) => {
             }
         }
         
-        const companies = await Company.find()
+        const companies = await Company.find(filter)
             .sort(sortOptions)
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .exec();
         
-        const count = await Company.countDocuments();
+        const count = await Company.countDocuments(filter);
         
         res.json({
             companies,
@@ -157,6 +163,46 @@ app.patch("/company/:id/coordinator", async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Failed to update coordinator' });
+    }
+});
+
+// Create a new company
+app.post("/company", async (req, res) => {
+    try {
+        const { Name, CGPA, Title, Stipend, Location, Type } = req.body;
+        const StipendInfo = req.body['Stipend Info'];
+        const JobTitle = req.body['Job Title'];
+        const ArrivalDate = req.body['Arrival Date'];
+        
+        if (!Name || Name.trim() === "") {
+            return res.status(400).json({ error: 'Company name is required' });
+        }
+        
+        // Get the highest id and increment
+        const lastCompany = await Company.findOne().sort({ id: -1 });
+        const newId = lastCompany ? lastCompany.id + 1 : 1;
+        
+        const newCompany = await Company.create({
+            id: newId,
+            Name: Name.trim(),
+            CGPA: CGPA || null,
+            Title: Title || null,
+            Stipend: Stipend || null,
+            "Stipend Info": StipendInfo || null,
+            Location: Location || null,
+            "Job Title": JobTitle || null,
+            Type: Type || null,
+            "Arrival Date": ArrivalDate || null,
+            Coordinator: "",
+            Tracked: false,
+            Invited: false,
+            Called: false
+        });
+        
+        res.status(201).json({ message: 'Company created successfully', company: newCompany });
+    } catch (error) {
+        console.error('Error creating company:', error);
+        res.status(500).json({ error: 'Failed to create company', details: error.message });
     }
 });
 
